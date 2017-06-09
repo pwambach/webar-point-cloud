@@ -120,8 +120,8 @@ function init(isVRDevice) {
   const copyButton = document.getElementById('copyButton');
   copyButton.addEventListener('click', copyVertices);
 
-  // const sendButton = document.getElementById('sendButton');
-  // sendButton.addEventListener('click', sendVertices);
+  const sendButton = document.getElementById('sendButton');
+  sendButton.addEventListener('click', sendVertices);
 }
 
 function initPointCloud() {
@@ -188,16 +188,17 @@ function copyVertices() {
   bufferGeometry.attributes.position.needsUpdate = true;
 }
 
-// function sendVertices() {
-//   // const source = points2.geometry.attributes.position.array;
-//   const data = new Float32Array(1000 * 3);
-//   data[0] = 0.123;
+function sendVertices() {
+  // const source = points2.geometry.attributes.position.array;
+  const data = new Float32Array(1000 * 3);
+  data[0] = 0.123;
 
-//   fetch('http://192.168.1.198:8000/data', {
-//     method: 'POST',
-//     body: data.buffer
-//   }).then(() => console.log(`send ${data.buffer.byteLength} bytes`));
-// }
+  fetch('http://192.168.1.198:8000/data', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/octet-stream '},
+    body: data.buffer
+  }).then(() => console.log(`send ${data.buffer.byteLength} bytes`));
+}
 
 function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
