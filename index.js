@@ -4,24 +4,37 @@ function GUI() {
   return this;
 }
 
-if (!Detector.webgl) Detector.addGetWebGLMessage();
+if (!Detector.webgl) {
+  Detector.addGetWebGLMessage();
+}
 
-var container, stats;
-var cameraOrtho, cameraPersp, cameraScene, scene, renderer;
-var pointCloud, points;
-var vrDisplay;
-var model;
-var gui;
-var pos = new THREE.Vector3(); // Avoid GC.
+const POINTS_PER_FRAME = 40000;
+const FRAMES_TO_SAVE = 20;
+const ELEMENTS_PER_POINT = 3;
+const ELEMENTS_PER_FRAME = ELEMENTS_PER_POINT * POINTS_PER_FRAME;
 
-var MODEL_SIZE_IN_METERS = 0.1;
+let container;
+let stats;
+let camera;
+let scene;
+let renderer;
+let axisHelper;
+let pointCloud;
+let points;
+let vrDisplay;
+let gui;
+let bufferGeometry;
+let points2;
+let vertices;
+
+let copyIndex = 0;
 
 // WebAR is currently based on the WebVR API so try to find the right
 // VRDisplay instance.
 if (navigator.getVRDisplays) {
-  navigator.getVRDisplays().then(function(vrDisplays) {
+  navigator.getVRDisplays().then(vrDisplays => {
     if (vrDisplays && vrDisplays.length > 0) {
-      for (var i = 0; !vrDisplay && i < vrDisplays.length; i++) {
+      for (let i = 0; !vrDisplay && i < vrDisplays.length; i++) {
         vrDisplay = vrDisplays[i];
         if (vrDisplay.displayName !== 'Tango VR Device') {
           vrDisplay = null;
@@ -29,18 +42,20 @@ if (navigator.getVRDisplays) {
       }
     }
     if (!vrDisplay) {
-      alert('No Tango WebAR VRDisplay found. Falling back to a video.');
+      console.warn('No Tango WebAR VRDisplay found. Falling back to a video.');
     }
-    init(vrDisplay);
+    init(true);
     updateAndRender();
   });
 } else {
-  alert('No navigator.getVRDisplays');
+  console.warn('No navigator.getVRDisplays');
+  init();
+  updateAndRender();
 }
 
-function init(vrDisplay) {
+function init(isVRDevice) {
   // Initialize the dat.GUI.
-  var datGUI = new dat.GUI();
+  const datGUI = new dat.GUI();
   gui = new GUI();
   datGUI
     .add(gui, 'showPointCloud')
@@ -60,30 +75,34 @@ function init(vrDisplay) {
 
   // Create the 3D scene and camera
   scene = new THREE.Scene();
-  // Use the THREE.WebAR utility to create a perspective camera
-  // suited to the actual see through camera parameters.
-  cameraPersp = THREE.WebAR.createVRSeeThroughCamera(vrDisplay, 0.01, 100);
 
-  var pointsMaterial = new THREE.PointsMaterial({
-    size: 0.01,
-    vertexColors: THREE.VertexColors
-  });
-  pointsMaterial.depthWrite = false;
-  pointCloud = new THREE.WebAR.VRPointCloud(vrDisplay, true);
-  points = new THREE.Points(pointCloud.getBufferGeometry(), pointsMaterial);
-  // Points are changing all the time so calculating the frustum culling
-  // volume is not very convenient.
-  points.frustumCulled = false;
-  points.renderDepth = 0;
+  // Axis Helper
+  axisHelper = new THREE.AxisHelper(5);
+  scene.add(axisHelper);
 
-  if (gui.showPointCloud) scene.add(points);
+  // Camera
+  camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  camera.position.set(5, 5, -10);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  scene.add(camera);
 
-  // Control the perspective camera using the VR pose.
-  vrControls = new THREE.VRControls(cameraPersp);
+  // Orbit Controls
+  const controls = new THREE.OrbitControls(camera); // eslint-disable-line no-unused-vars
+
+  if (isVRDevice) {
+    initPointCloud();
+  }
+
+  initSecondPointCloud();
 
   // Create the renderer
   renderer = new THREE.WebGLRenderer();
-  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setPixelRatio(1 /*window.devicePixelRatio*/);
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   // It is important to specify that the color buffer should not be
@@ -97,10 +116,90 @@ function init(vrDisplay) {
 
   // Control the resizing of the window to correctly display the scene.
   window.addEventListener('resize', onWindowResize, false);
+
+  const copyButton = document.getElementById('copyButton');
+  copyButton.addEventListener('click', copyVertices);
+
+  // const sendButton = document.getElementById('sendButton');
+  // sendButton.addEventListener('click', sendVertices);
 }
 
+function initPointCloud() {
+  const pointsMaterial = new THREE.PointsMaterial({
+    size: 0.01,
+    vertexColors: THREE.VertexColors
+  });
+  pointsMaterial.depthWrite = false;
+  pointCloud = new THREE.WebAR.VRPointCloud(vrDisplay, true);
+  points = new THREE.Points(pointCloud.getBufferGeometry(), pointsMaterial);
+  // Points are changing all the time so calculating the frustum culling
+  // volume is not very convenient.
+  points.frustumCulled = false;
+  points.renderDepth = 0;
+
+  if (gui.showPointCloud) {
+    scene.add(points);
+  }
+}
+
+// function fillSecondsPointCloud() {
+//   for (let i = 0; i < vertices.length; i++) {
+//     vertices[i] = Math.random() * 10;
+//   }
+//   bufferGeometry.attributes.position.needsUpdate = true;
+// }
+
+function initSecondPointCloud() {
+  vertices = new Float32Array(ELEMENTS_PER_FRAME * FRAMES_TO_SAVE);
+
+  const bufferAttribute = new THREE.BufferAttribute(
+    vertices,
+    ELEMENTS_PER_POINT
+  );
+  bufferGeometry = new THREE.BufferGeometry();
+  bufferGeometry.addAttribute('position', bufferAttribute);
+
+  const pointsMaterial = new THREE.PointsMaterial({
+    color: 0x777777,
+    size: 0.005
+  });
+  pointsMaterial.depthWrite = false;
+  points2 = new THREE.Points(bufferGeometry, pointsMaterial);
+  points2.frustumCulled = false;
+  points2.renderDepth = 0;
+
+  scene.add(points2);
+}
+
+function copyVertices() {
+  const time = Date.now();
+  const source = points.geometry.attributes.position.array;
+  const target = points2.geometry.attributes.position.array;
+  const offset = copyIndex * ELEMENTS_PER_FRAME;
+
+  for (let i = 0; i < ELEMENTS_PER_FRAME; i++) {
+    target[offset + i] = source[i];
+  }
+
+  copyIndex = (copyIndex + 1) % FRAMES_TO_SAVE;
+
+  const ms = Date.now() - time;
+  console.log(`copied in ${ms} ms (index: ${copyIndex})`);
+  bufferGeometry.attributes.position.needsUpdate = true;
+}
+
+// function sendVertices() {
+//   // const source = points2.geometry.attributes.position.array;
+//   const data = new Float32Array(1000 * 3);
+//   data[0] = 0.123;
+
+//   fetch('http://192.168.1.198:8000/data', {
+//     method: 'POST',
+//     body: data.buffer
+//   }).then(() => console.log(`send ${data.buffer.byteLength} bytes`));
+// }
+
 function onWindowResize() {
-  THREE.WebAR.resizeVRSeeThroughCamera(vrDisplay, cameraPersp);
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
@@ -109,17 +208,17 @@ function updateAndRender() {
 
   stats.update();
 
-  // Update the perspective scene
-  vrControls.update();
-
   // Update the point cloud. Only if the point cloud will be shown the
   // geometry is also updated.
-  pointCloud.update(gui.showPointCloud, gui.pointsToSkip, true);
+  if (pointCloud) {
+    pointCloud.update(gui.showPointCloud, gui.pointsToSkip, true);
+  }
 
   // Render the perspective scene
-  renderer.clearDepth();
+  // renderer.clearDepth();
 
-  renderer.render(scene, cameraPersp);
+  renderer.render(scene, camera);
 
   requestAnimationFrame(updateAndRender);
+  // setTimeout(updateAndRender, 500);
 }
