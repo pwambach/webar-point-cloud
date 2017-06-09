@@ -121,7 +121,10 @@ function init(isVRDevice) {
   copyButton.addEventListener('click', copyVertices);
 
   const sendButton = document.getElementById('sendButton');
-  sendButton.addEventListener('click', sendVertices);
+  sendButton.addEventListener('click', () => {
+    copyVertices();
+    sendVertices();
+  });
 }
 
 function initPointCloud() {
@@ -189,14 +192,13 @@ function copyVertices() {
 }
 
 function sendVertices() {
-  // const source = points2.geometry.attributes.position.array;
-  const data = new Float32Array(1000 * 3);
-  data[0] = 0.123;
+  const source = points.geometry.attributes.position.array;
+  const data = source.slice(0, ELEMENTS_PER_FRAME);
 
   fetch('http://192.168.1.198:8000/data', {
     method: 'POST',
-    headers: {'Content-Type': 'application/octet-stream '},
-    body: data.buffer
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(Array.from(data))
   }).then(() => console.log(`send ${data.buffer.byteLength} bytes`));
 }
 
