@@ -1,3 +1,5 @@
+/* MOSTLY COPIED FROM https://github.com/googlevr/chromium-webar/tree/master/examples/threejs/picking */
+
 function GUI() {
   this.showPointCloud = true;
   this.pointsToSkip = 0;
@@ -26,7 +28,6 @@ let gui;
 let bufferGeometry;
 let points2;
 let vertices;
-
 let copyIndex = 0;
 
 // WebAR is currently based on the WebVR API so try to find the right
@@ -73,14 +74,14 @@ function init(isVRDevice) {
   container = document.createElement('div');
   document.body.appendChild(container);
 
-  // Create the 3D scene and camera
+  // Create the 3D scene
   scene = new THREE.Scene();
 
   // Axis Helper
   axisHelper = new THREE.AxisHelper(5);
   scene.add(axisHelper);
 
-  // Camera
+  // Perspective Camera
   camera = new THREE.PerspectiveCamera(
     45,
     window.innerWidth / window.innerHeight,
@@ -94,6 +95,7 @@ function init(isVRDevice) {
   // Orbit Controls
   const controls = new THREE.OrbitControls(camera); // eslint-disable-line no-unused-vars
 
+  // Enable to load on non VR Device
   if (isVRDevice) {
     initPointCloud();
   }
@@ -104,10 +106,6 @@ function init(isVRDevice) {
   renderer = new THREE.WebGLRenderer();
   renderer.setPixelRatio(1 /*window.devicePixelRatio*/);
   renderer.setSize(window.innerWidth, window.innerHeight);
-
-  // It is important to specify that the color buffer should not be
-  // automatically cleared. The see through camera will render the whole
-  // background.
   document.body.appendChild(renderer.domElement);
 
   // Create a way to measure performance
@@ -117,9 +115,11 @@ function init(isVRDevice) {
   // Control the resizing of the window to correctly display the scene.
   window.addEventListener('resize', onWindowResize, false);
 
+  // Copy points of current frame to second point cloud
   const copyButton = document.getElementById('copyButton');
   copyButton.addEventListener('click', copyVertices);
 
+  // Send points of current frame to server
   const sendButton = document.getElementById('sendButton');
   sendButton.addEventListener('click', () => {
     copyVertices();
@@ -127,6 +127,7 @@ function init(isVRDevice) {
   });
 }
 
+// The live point cloud
 function initPointCloud() {
   const pointsMaterial = new THREE.PointsMaterial({
     size: 0.01,
@@ -145,13 +146,7 @@ function initPointCloud() {
   }
 }
 
-// function fillSecondsPointCloud() {
-//   for (let i = 0; i < vertices.length; i++) {
-//     vertices[i] = Math.random() * 10;
-//   }
-//   bufferGeometry.attributes.position.needsUpdate = true;
-// }
-
+// The aggregated point cloud
 function initSecondPointCloud() {
   vertices = new Float32Array(ELEMENTS_PER_FRAME * FRAMES_TO_SAVE);
 
@@ -174,6 +169,7 @@ function initSecondPointCloud() {
   scene.add(points2);
 }
 
+// copy points of current frame to second point cloud
 function copyVertices() {
   const time = Date.now();
   const source = points.geometry.attributes.position.array;
@@ -191,11 +187,12 @@ function copyVertices() {
   bufferGeometry.attributes.position.needsUpdate = true;
 }
 
+// send points of current frame to server
 function sendVertices() {
   const source = points.geometry.attributes.position.array;
   const data = source.slice(0, ELEMENTS_PER_FRAME);
 
-  fetch('http://192.168.1.198:8000/data', {
+  fetch('data', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(Array.from(data))
@@ -207,8 +204,6 @@ function onWindowResize() {
 }
 
 function updateAndRender() {
-  // UPDATE
-
   stats.update();
 
   // Update the point cloud. Only if the point cloud will be shown the
@@ -218,10 +213,7 @@ function updateAndRender() {
   }
 
   // Render the perspective scene
-  // renderer.clearDepth();
-
   renderer.render(scene, camera);
 
   requestAnimationFrame(updateAndRender);
-  // setTimeout(updateAndRender, 500);
 }

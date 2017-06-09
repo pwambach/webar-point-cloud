@@ -3,7 +3,6 @@ if (!Detector.webgl) {
 }
 
 let container;
-let stats;
 let camera;
 let scene;
 let renderer;
@@ -16,7 +15,6 @@ fetchPoints().then(points => {
 });
 
 function init(points) {
-  // Initialize everything related to ThreeJS.
   container = document.createElement('div');
   document.body.appendChild(container);
 
@@ -49,15 +47,7 @@ function init(points) {
   renderer.clearColor(0x00ff00);
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-
-  // It is important to specify that the color buffer should not be
-  // automatically cleared. The see through camera will render the whole
-  // background.
   document.body.appendChild(renderer.domElement);
-
-  // Create a way to measure performance
-  stats = new Stats();
-  container.appendChild(stats.dom);
 
   // Control the resizing of the window to correctly display the scene.
   window.addEventListener('resize', onWindowResize, false);
@@ -82,11 +72,12 @@ function onWindowResize() {
 }
 
 let frames = 0;
+
 function updateAndRender() {
   renderer.render(scene, camera);
 
   if (pointCloud) {
-    pointCloud.rotation.y = frames / 50;
+    pointCloud.rotation.y = frames / 100;
   }
 
   frames++;
@@ -99,7 +90,7 @@ function fetchPoints() {
     .then(res => res.text())
     .then(csv => csv.split('\n'))
     .then(lines => lines.map(line => line.split(';')))
-    .then(pts => pts.map(x => x.map(y => parseFloat(y))))
+    .then(pts => pts.map(point => point.map(num => parseFloat(num))))
     .then(pts => {
       console.log(`${pts.length} points`);
       const typedArray = new Float32Array(pts.length * 3);

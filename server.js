@@ -9,13 +9,11 @@ app.use(bodyParser.json({limit: '10MB'}));
 
 // respond with "hello world" when a GET request is made to the homepage
 app.get('/', function(req, res) {
-  console.log('hello world');
-  res.send('hello world');
+  console.log('ok');
+  res.send('ok');
 });
 
 app.post('/data', function(req, res) {
-  res.send('data received');
-
   const data = req.body;
   const result = [];
 
@@ -26,6 +24,7 @@ app.post('/data', function(req, res) {
 
   fs.appendFile('points.csv', result.join('\n'), 'utf8', () => {
     console.log('data received: ', result.length, ' points');
+    res.send('ok');
   });
 });
 
