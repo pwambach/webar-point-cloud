@@ -1,6 +1,4 @@
 function GUI() {
-  this.showSeeThroughCamera = true;
-  this.continuousPicking = false;
   this.showPointCloud = true;
   this.pointsToSkip = 0;
   return this;
@@ -9,7 +7,7 @@ function GUI() {
 if (!Detector.webgl) Detector.addGetWebGLMessage();
 
 var container, stats;
-var cameraOrtho, cameraPersp, cameraScene, scene, renderer, cameraMesh;
+var cameraOrtho, cameraPersp, cameraScene, scene, renderer;
 var pointCloud, points;
 var vrDisplay;
 var model;
@@ -37,17 +35,13 @@ if (navigator.getVRDisplays) {
     updateAndRender();
   });
 } else {
-  alert('No navigator.getVRDisplays. Falling back to a video.');
-  init();
-  updateAndRender();
+  alert('No navigator.getVRDisplays');
 }
 
 function init(vrDisplay) {
   // Initialize the dat.GUI.
   var datGUI = new dat.GUI();
   gui = new GUI();
-  datGUI.add(gui, 'showSeeThroughCamera').name('Show seethrough camera');
-  datGUI.add(gui, 'continuousPicking').name('Continuous picking');
   datGUI
     .add(gui, 'showPointCloud')
     .onFinishChange(function(value) {
@@ -64,32 +58,12 @@ function init(vrDisplay) {
   container = document.createElement('div');
   document.body.appendChild(container);
 
-  // Create the see through camera scene and camera
-  cameraScene = new THREE.Scene();
-  cameraOrtho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 100);
-  cameraMesh = THREE.WebAR.createVRSeeThroughCameraMesh(vrDisplay);
-  cameraScene.add(cameraMesh);
-
   // Create the 3D scene and camera
   scene = new THREE.Scene();
   // Use the THREE.WebAR utility to create a perspective camera
   // suited to the actual see through camera parameters.
   cameraPersp = THREE.WebAR.createVRSeeThroughCamera(vrDisplay, 0.01, 100);
-  // Create a model to be placed in the world using picking
-  model = new THREE.Mesh(
-    new THREE.ConeBufferGeometry(
-      MODEL_SIZE_IN_METERS / 2,
-      MODEL_SIZE_IN_METERS
-    ),
-    new THREE.MeshLambertMaterial({color: 0x888888})
-  );
-  // Apply a rotation to the model so it faces in the direction of the
-  // normal of the plane when the picking based reorientation is done
-  model.geometry.applyMatrix(
-    new THREE.Matrix4().makeRotationZ(THREE.Math.degToRad(-90))
-  );
-  model.position.set(0, 0, -2);
-  scene.add(model);
+
   var pointsMaterial = new THREE.PointsMaterial({
     size: 0.01,
     vertexColors: THREE.VertexColors
@@ -101,24 +75,20 @@ function init(vrDisplay) {
   // volume is not very convenient.
   points.frustumCulled = false;
   points.renderDepth = 0;
+
   if (gui.showPointCloud) scene.add(points);
 
   // Control the perspective camera using the VR pose.
   vrControls = new THREE.VRControls(cameraPersp);
 
-  // Add some lighting
-  var directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-  directionalLight.position.set(0, 1, 0);
-  scene.add(directionalLight);
-
   // Create the renderer
   renderer = new THREE.WebGLRenderer();
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
+
   // It is important to specify that the color buffer should not be
   // automatically cleared. The see through camera will render the whole
   // background.
-  renderer.autoClear = false;
   document.body.appendChild(renderer.domElement);
 
   // Create a way to measure performance
@@ -127,33 +97,6 @@ function init(vrDisplay) {
 
   // Control the resizing of the window to correctly display the scene.
   window.addEventListener('resize', onWindowResize, false);
-
-  // Wherever the user clicks in the screen, place the model.
-  renderer.domElement.addEventListener('click', function(event) {
-    pos.x = event.pageX / window.innerWidth;
-    pos.y = event.pageY / window.innerHeight;
-    picking();
-  });
-}
-
-function picking() {
-  if (vrDisplay) {
-    var pointAndPlane = vrDisplay.getPickingPointAndPlaneInPointCloud(
-      pos.x,
-      pos.y
-    );
-    if (pointAndPlane) {
-      // Orient and position the model in the picking point according
-      // to the picking plane. The offset is half of the model size.
-      THREE.WebAR.positionAndRotateObject3DWithPickingPointAndPlaneInPointCloud(
-        pointAndPlane,
-        model,
-        MODEL_SIZE_IN_METERS / 2
-      );
-    } else {
-      console.warn('Could not retrieve the correct point and plane.');
-    }
-  }
 }
 
 function onWindowResize() {
@@ -172,25 +115,6 @@ function updateAndRender() {
   // Update the point cloud. Only if the point cloud will be shown the
   // geometry is also updated.
   pointCloud.update(gui.showPointCloud, gui.pointsToSkip, true);
-
-  // If continuous picking is enabled, use the center of the screen
-  // to continuously pick.
-  if (gui.continuousPicking) {
-    pos.x = 0.5;
-    pos.y = 0.5;
-    picking();
-  }
-
-  // Make sure that the camera is correctly displayed depending on the
-  // device and camera orientations.
-  THREE.WebAR.updateCameraMeshOrientation(vrDisplay, cameraMesh);
-
-  // RENDER
-
-  // Render the see through camera scene
-  renderer.clear();
-
-  if (gui.showSeeThroughCamera) renderer.render(cameraScene, cameraOrtho);
 
   // Render the perspective scene
   renderer.clearDepth();
