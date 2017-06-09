@@ -1,0 +1,78 @@
+<!--
+/*
+ * Copyright 2017 Google Inc. All Rights Reserved.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    // Catch any possible error and show an alert. 
+    // Useful for "hacky" debugging.
+    window.addEventListener('error', function (event) {
+      var errorMessage = event.message;
+      var url = event.filename;
+      var lineNumber = event.lineno;
+      var columnNumber = event.colno;
+      alert("ERROR: " + errorMessage + " at " + url + " : " + lineNumber +
+        " : " + columnNumber);
+    });
+  </script>
+  <title>WebAR (Tango) Picking ThreeJS Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no,
+    minimum-scale=1.0, maximum-scale=1.0">
+  <style>
+    body {
+      font-family: Monospace;
+      background-color: #000000;
+      margin: 0px;
+      overflow: hidden;
+    }
+
+    #info {
+      color: #fff;
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      z-index: 100;
+      display: block;
+    }
+
+    a {
+      color: skyblue
+    }
+  </style>
+</head>
+
+<body>
+  <div id="info">
+    <a href="http://threejs.org" target="_blank">three.js</a> WebAR (Tango) Picking ThreeJS Example
+    <a href="https://github.com/judax" target="_blank">Iker Jamardo</a>
+  </div>
+
+  <script src="../../libs/third_party/three.js"></script>
+  <script src="../../libs/third_party/Detector.js"></script>
+  <script src="../../libs/third_party/stats.min.js"></script>
+  <script src="../../libs/third_party/VRControls.js"></script>
+  <script src="../../libs/third_party/dat.gui.min.js"></script>
+
+  <script src="../../libs/THREE.WebAR.js"></script>
+
+  <script src="index.js"></script>
+</body>
+
+</html>
