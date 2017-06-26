@@ -135,9 +135,9 @@ let frames = 0;
 function updateAndRender() {
   renderer.render(scene, camera);
 
-  if (pointCloud) {
-    pointCloud.rotation.y = frames / 100;
-  }
+  // if (pointCloud) {
+  //   pointCloud.rotation.y = frames / 100;
+  // }
 
   frames++;
 
