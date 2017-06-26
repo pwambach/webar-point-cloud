@@ -1,0 +1,67 @@
+<!-- MOSTLY COPIED FROM https://github.com/googlevr/chromium-webar/tree/master/examples/threejs/picking -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    // Catch any possible error and show an alert. 
+    // Useful for "hacky" debugging.
+    window.addEventListener('error', function (event) {
+      var errorMessage = event.message;
+      var url = event.filename;
+      var lineNumber = event.lineno;
+      var columnNumber = event.colno;
+      alert("ERROR: " + errorMessage + " at " + url + " : " + lineNumber +
+        " : " + columnNumber);
+    });
+  </script>
+  <title>Tango Test</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no,
+    minimum-scale=1.0, maximum-scale=1.0">
+  <style>
+    html,
+    body {
+      padding: 0;
+      margin: 0;
+    }
+
+    body {
+      font-family: Monospace;
+      background-color: #000000;
+      overflow: hidden;
+    }
+
+    #info {
+      color: #fff;
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      z-index: 100;
+      display: block;
+    }
+
+    a {
+      color: skyblue
+    }
+  </style>
+</head>
+
+<body>
+  <div id="info">
+    <button id="copyButton" style="width: 200px; height: 100px; display: block">Copy</button>
+    <button id="sendButton" style="width: 200px; height: 100px; display: block">Send</button>
+  </div>
+
+  <script src="../../libs/third_party/three.js"></script>
+  <script src="../../libs/third_party/OrbitControls.js"></script>
+  <script src="../../libs/third_party/Detector.js"></script>
+  <script src="../../libs/third_party/stats.min.js"></script>
+  <script src="../../libs/third_party/dat.gui.min.js"></script>
+  <script src="../../libs/THREE.WebAR.js"></script>
+  <script src="index.js"></script>
+</body>
+
+</html>
