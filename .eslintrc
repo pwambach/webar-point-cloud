@@ -12,7 +12,9 @@
     "Detector": true,
     "Promise": true,
     "Reflect": true,
-    "Float32Array": true
+    "Float32Array": true,
+    "mapboxgl": true,
+    "Threebox": true
   },
   "ecmaFeatures": {
     "arrowFunctions": true,
